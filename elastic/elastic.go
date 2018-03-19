@@ -1,4 +1,4 @@
-package main
+package elastic
 
 import (
 	"bytes"
@@ -42,6 +42,12 @@ type Document struct {
 
 type Elastic struct {
 	BaseUrl string
+}
+
+func check(e error) {
+	if e != nil {
+		log.Panicln("Error found ", e)
+	}
 }
 
 func NewElastic(baseUrl string) *Elastic {
@@ -108,7 +114,7 @@ func (el *Elastic) DeleteDoc(id string) error {
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	check(err)
-	fmt.Println(body)
+	fmt.Println(string(body))
 	return nil
 }
 

@@ -1,12 +1,14 @@
-package main
+package http
 
 import (
 	"log"
 	"net/http"
+
+	"github.com/MohammedLatif2/blog-indexer/elastic"
 )
 
 func SearchHandler(w http.ResponseWriter, r *http.Request) {
-	el := NewElastic("http://localhost:9200/rayed/posts/")
+	el := elastic.NewElastic("http://localhost:9200/rayed/posts/")
 	query := r.FormValue("q")
 	result, _ := el.Search(query)
 	w.Header().Set("Content-Type", "application/json")
