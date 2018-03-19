@@ -8,11 +8,13 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/MohammedLatif2/blog-indexer/elastic"
+
 	"github.com/fsnotify/fsnotify"
 	jww "github.com/spf13/jwalterweatherman"
 )
 
-func Watcher(root string) {
+func Watcher(root string, el *elastic.Elastic) {
 	tweakLimit()
 	dirs, _ := getDirsAndFilesFrom(root)
 	watcher, err := fsnotify.NewWatcher()
