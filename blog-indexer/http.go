@@ -17,11 +17,6 @@ func StatsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Not implemented yet"))
 }
 
-func DeleteHandler(w http.ResponseWriter, r *http.Request) {
-	// query := r.FormValue("q")
-	// result := DeleteDoc(query)
-}
-
 func StartWebServer() {
 	log.Println("Starting Web Server")
 	http.HandleFunc("/search", SearchHandler)

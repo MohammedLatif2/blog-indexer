@@ -11,7 +11,5 @@ func check(e error) {
 }
 
 func main() {
-	el := NewElastic("http://localhost:9200/rayed/posts/")
-	el.DeleteDoc("69f26ad3cbe76d607bfe4d73cb9eabadbfc8b573")
 	StartWebServer()
 }

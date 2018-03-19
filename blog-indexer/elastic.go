@@ -108,7 +108,7 @@ func (el *Elastic) DeleteDoc(id string) error {
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	check(err)
-	fmt.Println(string(body))
+	fmt.Println(body)
 	return nil
 }
 
