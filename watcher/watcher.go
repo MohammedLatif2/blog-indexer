@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/fsnotify/fsnotify"
@@ -12,7 +13,8 @@ import (
 )
 
 func Watcher(root string) {
-	dirs := getDirsFrom(root)
+	tweakLimit()
+	dirs, _ := getDirsAndFilesFrom(root)
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatal(err)
@@ -52,7 +54,7 @@ func Watcher(root string) {
 	<-done
 }
 
-func TweakLimit() {
+func tweakLimit() {
 	var rLimit syscall.Rlimit
 	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
 	if err != nil {
@@ -73,15 +75,17 @@ func remove(name string, watchList *[]string, watcher *fsnotify.Watcher) {
 		*watchList = append((*watchList)[:i], (*watchList)[i+1:]...)
 		log.Println("Dir removed from watchlist:", name)
 		watcher.Remove(name)
-	} else if isMD(name) {
+	} else if isMarkdown(name) {
 		log.Println("REMOVE: ", name)
 	}
 }
+
 func write(name string) {
-	if isMD(name) {
+	if isMarkdown(name) {
 		log.Println("INDEX: ", name)
 	}
 }
+
 func create(name string, watchList *[]string, watcher *fsnotify.Watcher) {
 	if isDir(name) {
 		*watchList = append(*watchList, name)
@@ -94,6 +98,7 @@ func create(name string, watchList *[]string, watcher *fsnotify.Watcher) {
 		write(name)
 	}
 }
+
 func inWatchList(str string, watchList []string) int {
 	for i, val := range watchList {
 		if val == str {
@@ -103,7 +108,8 @@ func inWatchList(str string, watchList []string) int {
 	return -1
 }
 
-func getDirsFrom(root string) []string {
+func getDirsAndFilesFrom(root string) ([]string, []string) {
+	files := []string{}
 	dirs := []string{}
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -112,14 +118,17 @@ func getDirsFrom(root string) []string {
 		}
 		if info.IsDir() {
 			dirs = append(dirs, path)
+			return nil
+		} else if strings.HasSuffix(info.Name(), ".md") {
+			files = append(files, path)
+			return nil
 		}
 		return nil
 	})
 	if err != nil {
-		fmt.Printf("getDirsFrom(\"%s\") failed", root)
-		return nil
+		return nil, nil
 	}
-	return dirs
+	return dirs, files
 }
 
 func isDir(filename string) bool {
@@ -131,6 +140,6 @@ func isDir(filename string) bool {
 	return fi.Mode().IsDir()
 }
 
-func isMD(filename string) bool {
+func isMarkdown(filename string) bool {
 	return filepath.Ext(filename) == ".md"
 }
