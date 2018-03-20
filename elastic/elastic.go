@@ -44,6 +44,9 @@ type Elastic struct {
 }
 
 func NewElastic(baseUrl string) *Elastic {
+	if !isEndedBySlash(baseUrl) {
+		baseUrl = baseUrl + "/"
+	}
 	return &Elastic{BaseUrl: baseUrl}
 }
 
@@ -89,7 +92,7 @@ func (el *Elastic) IndexDoc(filePath, rootDirPath string) error {
 	}
 	jsonData, err := json.Marshal(doc)
 	if err != nil {
-
+		return err
 	}
 	// Index data
 	url := el.BaseUrl + idx
@@ -110,9 +113,6 @@ func (el *Elastic) IndexDoc(filePath, rootDirPath string) error {
 func (el *Elastic) DeleteDoc(filePath string) error {
 	idx := getIDX(filePath)
 	url := el.BaseUrl + "rayed/post/" + idx
-	if !isEndedBySlash(el.BaseUrl) {
-		url = el.BaseUrl + "/rayed/post/" + idx
-	}
 	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		return err
@@ -132,9 +132,6 @@ func (el *Elastic) DeleteDoc(filePath string) error {
 func (el *Elastic) Search(query string) ([]byte, error) {
 	query = url.QueryEscape(query)
 	reqURL := el.BaseUrl + "_search?q=" + query
-	if !isEndedBySlash(el.BaseUrl) {
-		reqURL = el.BaseUrl + "/_search?q=" + query
-	}
 	resp, err := http.Get(reqURL)
 	if err != nil {
 		return nil, err
