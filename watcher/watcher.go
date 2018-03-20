@@ -102,7 +102,7 @@ func (watcherArgs *watcherArgs) indexFiles(files []string) {
 }
 
 func (watcherArgs *watcherArgs) writeFile(name string) {
-	// watcherArgs.el.IndexDoc(name, watcherArgs.root)
+	watcherArgs.el.IndexDoc(name, watcherArgs.root)
 	fmt.Println("IDX DOC ", name)
 	if i := watcherArgs.findIndexedFile(name); i != -1 {
 		return
@@ -115,7 +115,7 @@ func (watcherArgs *watcherArgs) removeFile(name string) {
 	if i == -1 {
 		return
 	}
-	// watcherArgs.el.DeleteDoc(name)
+	watcherArgs.el.DeleteDoc(name)
 	fmt.Println("REMDOC: ", name)
 	watcherArgs.indexedFiles = removeStrAt(i, watcherArgs.indexedFiles)
 }
@@ -162,7 +162,7 @@ func (watcherArgs *watcherArgs) removeFilesWithPrefix(prefix string) {
 		if strings.HasPrefix(file, prefix) == false {
 			continue
 		}
-		// watcherArgs.el.DeleteDoc(file)
+		watcherArgs.el.DeleteDoc(file)
 		fmt.Println("REMDOC: ", file)
 		watcherArgs.indexedFiles = removeStrAt(idx, watcherArgs.indexedFiles)
 		removedFiles++
