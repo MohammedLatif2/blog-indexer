@@ -35,7 +35,7 @@ func Watcher(root string, el *elastic.Elastic) {
 		for {
 			select {
 			case event := <-watcherArgs.watcher.Events:
-				fmt.Println("event:", event)
+				// fmt.Println("event:", event)
 				if watcherArgs.isDir(event.Name) {
 					// if event.Op&fsnotify.Write == fsnotify.Write {
 					// 	Do something?
@@ -91,7 +91,7 @@ func (watcherArgs *watcherArgs) updateWatchList(watchList []string) {
 			log.Fatal(err)
 		}
 		watcherArgs.watchList = append(watcherArgs.watchList, dir)
-		fmt.Println("ADDED DIR TO WATCHLIST ", dir)
+		// fmt.Println("ADDED DIR TO WATCHLIST ", dir)
 	}
 }
 
@@ -102,8 +102,13 @@ func (watcherArgs *watcherArgs) indexFiles(files []string) {
 }
 
 func (watcherArgs *watcherArgs) writeFile(name string) {
-	watcherArgs.el.IndexDoc(name, watcherArgs.root)
-	fmt.Println("IDX DOC ", name)
+	err := watcherArgs.el.IndexDoc(name, watcherArgs.root)
+	if err != nil {
+		// fmt.Println("ERROR IDXING DOC ", name)
+		log.Println(err)
+		return
+	}
+	// fmt.Println("IDX DOC ", name)
 	if i := watcherArgs.findIndexedFile(name); i != -1 {
 		return
 	}
@@ -115,8 +120,13 @@ func (watcherArgs *watcherArgs) removeFile(name string) {
 	if i == -1 {
 		return
 	}
-	watcherArgs.el.DeleteDoc(name)
-	fmt.Println("REMDOC: ", name)
+	err := watcherArgs.el.DeleteDoc(name)
+	if err != nil {
+		// fmt.Println("ERROR REMOVING DOC ", name)
+		log.Println(err)
+		return
+	}
+	// fmt.Println("REMDOC: ", name)
 	watcherArgs.indexedFiles = removeStrAt(i, watcherArgs.indexedFiles)
 }
 
@@ -133,7 +143,7 @@ func (watcherArgs *watcherArgs) removeDir(name string) {
 	if i := watcherArgs.findDir(name); i != -1 {
 		watcherArgs.watchList = removeStrAt(i, watcherArgs.watchList)
 		watcherArgs.watcher.Remove(name)
-		fmt.Println("REMOVED DIR FROM WATCHLIST:", name)
+		// fmt.Println("REMOVED DIR FROM WATCHLIST:", name)
 		watcherArgs.removeDirsWithPrefix(name)
 		watcherArgs.removeFilesWithPrefix(name)
 	}
@@ -147,7 +157,7 @@ func (watcherArgs *watcherArgs) removeDirsWithPrefix(prefix string) {
 		if strings.HasPrefix(dir, prefix) == false {
 			continue
 		}
-		fmt.Println("REMOVED DIR FROM WATCHLIST:", dir)
+		// fmt.Println("REMOVED DIR FROM WATCHLIST:", dir)
 		watcherArgs.watchList = removeStrAt(idx, watcherArgs.watchList)
 		watcherArgs.watcher.Remove(dir)
 		removedDirs++
@@ -162,8 +172,13 @@ func (watcherArgs *watcherArgs) removeFilesWithPrefix(prefix string) {
 		if strings.HasPrefix(file, prefix) == false {
 			continue
 		}
-		watcherArgs.el.DeleteDoc(file)
-		fmt.Println("REMDOC: ", file)
+		err := watcherArgs.el.DeleteDoc(file)
+		if err != nil {
+			// fmt.Println("ERROR REMOVING DOC ", name)
+			log.Println(err)
+			return
+		}
+		// fmt.Println("REMDOC: ", file)
 		watcherArgs.indexedFiles = removeStrAt(idx, watcherArgs.indexedFiles)
 		removedFiles++
 	}
@@ -213,6 +228,9 @@ func (watcherArgs *watcherArgs) isDir(filename string) bool {
 	}
 	fi, err := os.Stat(filename)
 	if err != nil {
+		if strings.HasSuffix(err.Error(), "no such file or directory") {
+			return false
+		}
 		fmt.Println(err)
 		return false
 	}
