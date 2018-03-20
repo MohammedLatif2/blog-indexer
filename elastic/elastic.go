@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -44,25 +43,20 @@ type Elastic struct {
 	BaseUrl string
 }
 
-func check(e error) {
-	if e != nil {
-		log.Panicln("Error found ", e)
-	}
-}
-
 func NewElastic(baseUrl string) *Elastic {
 	return &Elastic{BaseUrl: baseUrl}
 }
 
-func docFromFile(fileName, root string) *Document {
+func docFromFile(filePath, rootDirPath string) (*Document, error) {
 	// Read file
-	dat, err := ioutil.ReadFile(fileName)
-	check(err)
+	dat, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
 	// Split header (frontmatter) and content (body)
 	t := strings.Split(string(dat), "---")
 	if len(t) < 3 {
-		log.Println("Split arr is too small")
-		return nil
+		return nil, fmt.Errorf("Split arr is too small")
 	}
 	header := t[1]
 	body := t[2]
@@ -70,69 +64,106 @@ func docFromFile(fileName, root string) *Document {
 	h := Header{}
 	yaml.Unmarshal([]byte(header), &h)
 	date, err := time.Parse("2006-01-02T15:04:05-07:00", h.Date)
-	check(err)
+	if err != nil {
+		return nil, err
+	}
 	d := Document{
-		Path:       fileName[len(root):],
+		Path:       filePath[len(rootDirPath):],
 		Text:       body,
 		Title:      h.Title,
 		Date:       date,
 		Categories: h.Categories,
 	}
-	return &d
+	return &d, nil
 }
 
-func getIDX(file string) string {
-	return fmt.Sprintf("%x", sha1.Sum([]byte(file)))
+func getIDX(filePath string) string {
+	return fmt.Sprintf("%x", sha1.Sum([]byte(filePath)))
 }
 
-func (el *Elastic) IndexDoc(file string, rootDir string) error {
-	idx := getIDX(file)
-	doc := docFromFile(file, rootDir)
+func (el *Elastic) IndexDoc(filePath, rootDirPath string) error {
+	idx := getIDX(filePath)
+	doc, err := docFromFile(filePath, rootDirPath)
+	if err != nil {
+		return err
+	}
 	jsonData, err := json.Marshal(doc)
-	check(err)
+	if err != nil {
 
+	}
 	// Index data
 	url := el.BaseUrl + idx
 	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(jsonData))
-	check(err)
+	if err != nil {
+		return err
+	}
 	req.Header.Set("Content-Type", "application/json")
-
 	client := &http.Client{}
 	resp, err := client.Do(req)
-	check(err)
+	if err != nil {
+		return err
+	}
 	defer resp.Body.Close()
 	return nil
 }
 
-func (el *Elastic) DeleteDoc(id string) error {
-	url := el.BaseUrl + id
+func (el *Elastic) DeleteDoc(filePath string) error {
+	idx := getIDX(filePath)
+	url := el.BaseUrl + "rayed/post/" + idx
+	if !isEndedBySlash(el.BaseUrl) {
+		url = el.BaseUrl + "/rayed/post/" + idx
+	}
 	req, err := http.NewRequest("DELETE", url, nil)
-	check(err)
+	if err != nil {
+		return err
+	}
 	client := &http.Client{}
 	resp, err := client.Do(req)
-	check(err)
+	if err != nil {
+		return err
+	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	check(err)
-	fmt.Println(string(body))
-	return nil
+	if resp.StatusCode == http.StatusOK {
+		return nil
+	}
+	return fmt.Errorf("doc not deleted")
 }
 
 func (el *Elastic) Search(query string) ([]byte, error) {
 	query = url.QueryEscape(query)
 	reqURL := el.BaseUrl + "_search?q=" + query
+	if !isEndedBySlash(el.BaseUrl) {
+		reqURL = el.BaseUrl + "/_search?q=" + query
+	}
 	resp, err := http.Get(reqURL)
-	check(err)
+	if err != nil {
+		return nil, err
+	}
 	defer resp.Body.Close()
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	check(err)
+	if err != nil {
+		return nil, err
+	}
+	// parse json to result
 	var result Result
 	json.Unmarshal(bodyBytes, &result)
 	docs := []Document{}
+	// add docs from result
 	for _, doc := range result.Hits.Hits {
 		docs = append(docs, doc.Source)
 	}
+	// parse docs to json
 	docsJson, err := json.Marshal(docs)
-	check(err)
+	if err != nil {
+		return nil, err
+	}
 	return docsJson, nil
+}
+
+func isEndedBySlash(url string) bool {
+	index := strings.LastIndexAny(url, "/")
+	if index+1 == len(url) {
+		return true
+	}
+	return false
 }
