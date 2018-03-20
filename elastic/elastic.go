@@ -90,13 +90,13 @@ func (el *Elastic) IndexDoc(filePath, rootDirPath string) error {
 	if err != nil {
 		return err
 	}
-	jsonData, err := json.Marshal(doc)
+	jsonDoc, err := json.Marshal(doc)
 	if err != nil {
 		return err
 	}
 	// Index data
-	url := el.BaseUrl + idx
-	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(jsonData))
+	url := el.BaseUrl + "rayed/post/" + idx
+	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(jsonDoc))
 	if err != nil {
 		return err
 	}
@@ -107,6 +107,9 @@ func (el *Elastic) IndexDoc(filePath, rootDirPath string) error {
 		return err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= 300 {
+		return fmt.Errorf("document not indexed")
+	}
 	return nil
 }
 
@@ -123,10 +126,10 @@ func (el *Elastic) DeleteDoc(filePath string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusOK {
-		return nil
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= 300 {
+		return fmt.Errorf("doc not deleted")
 	}
-	return fmt.Errorf("doc not deleted")
+	return nil
 }
 
 func (el *Elastic) Search(query string) ([]byte, error) {
