@@ -10,7 +10,6 @@ import (
 )
 
 func main() {
-
 	config, err := config.GetConfig()
 	if err == nil {
 		el := elastic.NewElastic(config.ElRoot)

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -32,22 +33,45 @@ type Header struct {
 }
 
 type Document struct {
+	_Idx       string
 	Path       string
 	Text       string
 	Title      string
 	Date       time.Time
 	Categories []string
 }
+type Job struct {
+	Command  string
+	Id       string
+	Document *Document
+}
+type Index struct {
+	Index *Index1 `json:"index"`
+}
+type Index1 struct {
+	Index string `json:"_index"`
+	Type  string `json:"_type"`
+	Id    string `json:"_id"`
+}
 
 type Elastic struct {
 	BaseUrl string
+	jobs    chan *Job
+	done    chan struct{}
 }
 
 func NewElastic(baseUrl string) *Elastic {
 	if !isEndedBySlash(baseUrl) {
 		baseUrl = baseUrl + "/"
 	}
-	return &Elastic{BaseUrl: baseUrl}
+	el := &Elastic{}
+	el.BaseUrl = baseUrl
+	el.jobs = make(chan *Job, 1)
+	el.done = make(chan struct{}, 1)
+
+	go el.batcher()
+
+	return el
 }
 
 func docFromFile(filePath, rootDirPath string) (*Document, error) {
@@ -86,48 +110,90 @@ func getIDX(filePath string) string {
 
 func (el *Elastic) IndexDoc(filePath, rootDirPath string) error {
 	idx := getIDX(filePath)
-	doc, err := docFromFile(filePath, rootDirPath)
-	if err != nil {
-		return err
-	}
-	jsonDoc, err := json.Marshal(doc)
-	if err != nil {
-		return err
-	}
-	// Index data
-	url := el.BaseUrl + "rayed/post/" + idx
-	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(jsonDoc))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= 300 {
-		return fmt.Errorf("document not indexed")
+	doc, _ := docFromFile(filePath, rootDirPath)
+	el.jobs <- &Job{
+		Command:  "index",
+		Document: doc,
+		Id:       idx,
 	}
 	return nil
 }
 
-func (el *Elastic) DeleteDoc(filePath string) error {
-	idx := getIDX(filePath)
-	url := el.BaseUrl + "rayed/post/" + idx
-	req, err := http.NewRequest("DELETE", url, nil)
-	if err != nil {
-		return err
+func (el *Elastic) batcher() {
+	tick := time.Tick(1 * time.Second)
+	jobs := make([]*Job, 0)
+OuterLoop:
+	for {
+		select {
+		case job := <-el.jobs:
+			jobs = append(jobs, job)
+			if len(jobs) == 100 {
+				el.bulkJob(jobs)
+				jobs = make([]*Job, 0)
+			}
+		case <-tick:
+			if len(jobs) == 0 {
+				continue
+			}
+			el.bulkJob(jobs)
+			jobs = make([]*Job, 0)
+		case <-el.done:
+			el.bulkJob(jobs)
+			break OuterLoop
+		}
 	}
+}
+
+func (el *Elastic) Close() {
+	el.done <- struct{}{}
+}
+
+func (el *Elastic) bulkJob(jobs []*Job) {
+	url := el.BaseUrl + "_bulk"
+
+	lines := []string{}
+	for _, job := range jobs {
+		command := map[string]interface{}{
+			job.Command: map[string]string{
+				"_index": "rayed",
+				"_type":  "post",
+				"_id":    job.Id,
+			},
+		}
+		commandJSON, err := json.Marshal(command)
+		if err != nil {
+			log.Println(err.Error())
+		}
+		lines = append(lines, string(commandJSON))
+
+		if job.Document != nil {
+			docJSON, err := json.Marshal(job.Document)
+			if err != nil {
+				log.Println(err.Error())
+			}
+			lines = append(lines, string(docJSON))
+		}
+	}
+
+	request := strings.Join(lines, "\n") + "\n"
+	req, _ := http.NewRequest("POST", url, bytes.NewBuffer([]byte(request)))
+	req.Header.Set("Content-Type", "application/x-ndjson")
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		log.Println(err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= 300 {
-		return fmt.Errorf("doc not deleted")
+		log.Println("document not indexed")
+	}
+}
+
+func (el *Elastic) DeleteDoc(filePath string) error {
+	idx := getIDX(filePath)
+	el.jobs <- &Job{
+		Command: "delete",
+		Id:      idx,
 	}
 	return nil
 }
