@@ -80,7 +80,7 @@ func (watcherArgs *watcherArgs) setWatcher() {
 	watcherArgs.watcher = watcher
 }
 
-func (watcherArgs *watcherArgs) updateWatchList(watchList []string) {
+func (watcherArgs *watcherArgs) updateWatchList(watchList strList) {
 	for i := 0; i < len(watchList); i++ {
 		// Check for duplicate directories
 		dir := watchList[i]
@@ -97,7 +97,7 @@ func (watcherArgs *watcherArgs) updateWatchList(watchList []string) {
 	}
 }
 
-func (watcherArgs *watcherArgs) indexFiles(files []string) {
+func (watcherArgs *watcherArgs) indexFiles(files strList) {
 	for _, file := range files {
 		watcherArgs.writeFile(file)
 	}
@@ -192,9 +192,9 @@ func (strList strList) findStr(str string) int {
 	return -1
 }
 
-func getDirsAndFilesFrom(root string) ([]string, []string) {
-	files := []string{}
-	dirs := []string{}
+func getDirsAndFilesFrom(root string) (strList, strList) {
+	files := strList{}
+	dirs := strList{}
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
@@ -250,6 +250,6 @@ func tweakLimit() {
 	}
 }
 
-func removeStrAt(idx int, list []string) []string {
+func removeStrAt(idx int, list strList) strList {
 	return append(list[:idx], list[idx+1:]...)
 }
