@@ -1,3 +1,17 @@
-docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch-oss:6.2.2
+# Blog Indexer
 
-docker run -p 5601:5601 docker.elastic.co/kibana/kibana:6.2.2
+
+
+## Building
+
+    dep ensure
+    go run main.go  # to run
+    go build        # to build blog-indexer binary
+
+
+## Testing with Elastic
+
+You can use the project `docker-compose.yml` file to start an instance of Elasticsearch with Kibana useful for testing the app, or even tune it for production use:
+
+    docker-compose up 
+
