@@ -14,12 +14,14 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 )
 
+type strList []string
+
 type watcherArgs struct {
 	watcher      *fsnotify.Watcher
 	root         string
 	el           *elastic.Elastic
-	watchList    []string
-	indexedFiles []string
+	watchList    strList
+	indexedFiles strList
 }
 
 func Watcher(root string, el *elastic.Elastic) {
@@ -82,7 +84,7 @@ func (watcherArgs *watcherArgs) updateWatchList(watchList []string) {
 	for i := 0; i < len(watchList); i++ {
 		// Check for duplicate directories
 		dir := watchList[i]
-		if watcherArgs.findDir(dir) != -1 {
+		if watcherArgs.watchList.findStr(dir) != -1 {
 			continue
 		}
 		// Add directory to watchlist
@@ -109,14 +111,14 @@ func (watcherArgs *watcherArgs) writeFile(name string) {
 		return
 	}
 	// fmt.Println("IDX DOC ", name)
-	if i := watcherArgs.findIndexedFile(name); i != -1 {
+	if i := watcherArgs.indexedFiles.findStr(name); i != -1 {
 		return
 	}
 	watcherArgs.indexedFiles = append(watcherArgs.indexedFiles, name)
 }
 
 func (watcherArgs *watcherArgs) removeFile(name string) {
-	i := watcherArgs.findIndexedFile(name)
+	i := watcherArgs.indexedFiles.findStr(name)
 	if i == -1 {
 		return
 	}
@@ -130,17 +132,8 @@ func (watcherArgs *watcherArgs) removeFile(name string) {
 	watcherArgs.indexedFiles = removeStrAt(i, watcherArgs.indexedFiles)
 }
 
-func (watcherArgs *watcherArgs) findIndexedFile(file string) int {
-	for i, indexedFile := range watcherArgs.indexedFiles {
-		if indexedFile == file {
-			return i
-		}
-	}
-	return -1
-}
-
 func (watcherArgs *watcherArgs) removeDir(name string) {
-	if i := watcherArgs.findDir(name); i != -1 {
+	if i := watcherArgs.watchList.findStr(name); i != -1 {
 		watcherArgs.watchList = removeStrAt(i, watcherArgs.watchList)
 		watcherArgs.watcher.Remove(name)
 		// fmt.Println("REMOVED DIR FROM WATCHLIST:", name)
@@ -190,9 +183,9 @@ func (watcherArgs *watcherArgs) addNewDir(name string) {
 	watcherArgs.updateWatchList(dirs)
 }
 
-func (watcherArgs *watcherArgs) findDir(dirName string) int {
-	for i, dir := range watcherArgs.watchList {
-		if dir == dirName {
+func (strList strList) findStr(str string) int {
+	for i, val := range strList {
+		if val == str {
 			return i
 		}
 	}
@@ -223,7 +216,7 @@ func getDirsAndFilesFrom(root string) ([]string, []string) {
 }
 
 func (watcherArgs *watcherArgs) isDir(filename string) bool {
-	if watcherArgs.findDir(filename) != -1 {
+	if watcherArgs.watchList.findStr(filename) != -1 {
 		return true
 	}
 	fi, err := os.Stat(filename)
