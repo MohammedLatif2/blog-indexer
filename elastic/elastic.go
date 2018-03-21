@@ -132,9 +132,18 @@ func (el *Elastic) DeleteDoc(filePath string) error {
 	return nil
 }
 
-func (el *Elastic) Search(query string) ([]byte, error) {
+func (el *Elastic) Search(query string, size string, from string) ([]byte, error) {
 	query = url.QueryEscape(query)
+	if len(query) == 0 {
+		return nil, fmt.Errorf("query param is empty")
+	}
 	reqURL := el.BaseUrl + "_search?q=" + query
+	if len(size) != 0 {
+		reqURL = reqURL + "&size=" + size
+	}
+	if len(from) != 0 {
+		reqURL = reqURL + "&from=" + from
+	}
 	resp, err := http.Get(reqURL)
 	if err != nil {
 		return nil, err

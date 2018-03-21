@@ -23,7 +23,9 @@ func (server *Server) MakeHandler(fn func(http.ResponseWriter, *http.Request)) h
 
 func (server *Server) SearchHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.FormValue("q")
-	result, err := server.el.Search(query)
+	size := r.FormValue("size")
+	from := r.FormValue("from")
+	result, err := server.el.Search(query, size, from)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal Server Error"))
