@@ -1,21 +1,19 @@
 package main
 
 import (
-	"log"
+	"flag"
 
-	"github.com/MohammedLatif2/blog-indexer/config"
 	"github.com/MohammedLatif2/blog-indexer/elastic"
 	"github.com/MohammedLatif2/blog-indexer/http"
-	"github.com/MohammedLatif2/blog-indexer/watcher"
 )
 
 func main() {
-	config, err := config.GetConfig()
-	if err == nil {
-		el := elastic.NewElastic(config.ElRoot)
-		go watcher.NewWatcher(config.Root, nil, nil).Start()
-		s := http.NewServer(el)
-		s.Start()
-	}
-	log.Println(err)
+	var elURL, postsRoot string
+	flag.StringVar(&postsRoot, "elURL", "/Users/malsayed/workspace/rayed.com/content/posts", "post directory")
+	flag.StringVar(&elURL, "postsRoot", "http://localhost:9200/", "elastic host")
+	flag.Parse()
+	el := elastic.NewElastic(elURL)
+	// go watcher.NewWatcher(postsRoot, el.IndexDoc, el.DeleteDoc).Start()
+	s := http.NewServer(el)
+	s.Start()
 }

@@ -1,12 +1,13 @@
-# Blog Indexer
+# 
 
 
 
 ## Building
 
     dep ensure
-    go run main.go  # to run
-    go build        # to build blog-indexer binary
+    go run main.go -elURL=<Elastic Server> -postsRoot=<Posts Root Directory>    # to run
+    
+    go build                                                                    # to build blog-indexer binary
 
 
 ## Testing with Elastic

@@ -12,7 +12,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 )
 
-type CallBack func(fileName string) error
+type CallBack func(fileName string)
 
 type FileInfo struct {
 	isDir bool
