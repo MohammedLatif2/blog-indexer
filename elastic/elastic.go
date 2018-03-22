@@ -3,7 +3,6 @@ package elastic
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -147,7 +146,7 @@ func (el *Elastic) DeleteDoc(id string) {
 func (el *Elastic) Search(query string, size string, from string) ([]document.Document, error) {
 	query = url.QueryEscape(query)
 	if len(query) == 0 {
-		return nil, fmt.Errorf("query param is empty")
+		return nil, nil
 	}
 	reqURL := el.BaseUrl + "_search?q=" + query
 	if len(size) != 0 {

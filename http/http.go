@@ -17,12 +17,6 @@ func NewServer(el *elastic.Elastic) *Server {
 	return &Server{el}
 }
 
-func (server *Server) MakeHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fn(w, r)
-	}
-}
-
 func (server *Server) SearchHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.FormValue("q")
 	size := r.FormValue("size")
@@ -63,12 +57,17 @@ func (server *Server) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, map[string]interface{}{"q": q, "result": result})
 }
 
+func (server *Server) JsHandler(w http.ResponseWriter, r *http.Request) {
+	t, _ := template.ParseFiles("templates/js.html")
+	t.Execute(w, nil)
+
+}
+
 func (server *Server) Start() {
 	log.Println("Starting Web Server")
-	http.HandleFunc("/search", server.MakeHandler(server.SearchHandler))
-	http.HandleFunc("/stats", server.MakeHandler(server.StatsHandler))
-	http.HandleFunc("/", server.MakeHandler(server.IndexHandler))
-	// http.HandleFunc("/delete", DeleteHandler)
-
+	http.HandleFunc("/search", server.SearchHandler)
+	http.HandleFunc("/stats", server.StatsHandler)
+	http.HandleFunc("/", server.IndexHandler)
+	http.HandleFunc("/js", server.JsHandler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
