@@ -144,7 +144,7 @@ func (el *Elastic) DeleteDoc(id string) {
 	}
 }
 
-func (el *Elastic) Search(query string, size string, from string) ([]byte, error) {
+func (el *Elastic) Search(query string, size string, from string) ([]document.Document, error) {
 	query = url.QueryEscape(query)
 	if len(query) == 0 {
 		return nil, fmt.Errorf("query param is empty")
@@ -173,12 +173,10 @@ func (el *Elastic) Search(query string, size string, from string) ([]byte, error
 	for _, doc := range result.Hits.Hits {
 		docs = append(docs, doc.Source)
 	}
+	return docs, nil
 	// parse docs to json
-	docsJson, err := json.Marshal(docs)
-	if err != nil {
-		return nil, err
-	}
-	return docsJson, nil
+
+	// return docsJson, nil
 }
 
 func isEndedBySlash(url string) bool {

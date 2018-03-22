@@ -1,0 +1,10 @@
+<h1>Search</h1>
+<form>
+    query: 
+    <input type="text" name="q" value="{{.q}}"> 
+    <input type="submit" value="search">
+</form>
+
+{{range .result}}
+<a href="https://rayed.com/posts{{.Path}}"><p>{{.Title}}</p></a>
+{{end}}

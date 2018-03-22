@@ -45,7 +45,7 @@ func DocFromFile(filePath, rootDirPath string) (*Document, error) {
 		return nil, err
 	}
 	d := Document{
-		Path:       filePath[len(rootDirPath):],
+		Path:       strings.TrimSuffix(filePath[len(rootDirPath):], ".md"),
 		Text:       body,
 		Title:      h.Title,
 		Date:       date,

@@ -14,9 +14,12 @@ func main() {
 	flag.StringVar(&postsRoot, "elURL", "/Users/malsayed/workspace/rayed.com/content/posts", "post directory")
 	flag.StringVar(&elURL, "postsRoot", "http://localhost:9200/", "elastic host")
 	flag.Parse()
+
 	el := elastic.NewElastic(elURL)
 	elm := elastic_driver.NewElasticDriver(el, postsRoot)
+	
 	go watcher.NewWatcher(postsRoot, elm.IndexDoc, elm.DeleteDoc).Start()
+	
 	s := http.NewServer(el)
 	s.Start()
 }
