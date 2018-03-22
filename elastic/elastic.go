@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	yaml "gopkg.in/yaml.v2"
+	"github.com/MohammedLatif2/blog-indexer/config/document_manager"
 )
 
 type Result struct {
@@ -23,27 +23,13 @@ type Hits struct {
 	Hits  []Hits2
 }
 type Hits2 struct {
-	Source Document `json:"_source"`
+	Source document_manager.Document `json:"_source"`
 }
 
-type Header struct {
-	Title      string
-	Date       string
-	Categories []string
-}
-
-type Document struct {
-	_Idx       string
-	Path       string
-	Text       string
-	Title      string
-	Date       time.Time
-	Categories []string
-}
 type Job struct {
 	Command  string
 	Id       string
-	Document *Document
+	Document *document_manager.Document
 }
 type Index struct {
 	Index *Index1 `json:"index"`
@@ -74,43 +60,16 @@ func NewElastic(baseUrl string) *Elastic {
 	return el
 }
 
-func docFromFile(filePath, rootDirPath string) (*Document, error) {
-	// Read file
-	dat, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return nil, err
-	}
-	// Split header (frontmatter) and content (body)
-	t := strings.Split(string(dat), "---")
-	if len(t) < 3 {
-		return nil, fmt.Errorf("Split arr is too small")
-	}
-	header := t[1]
-	body := t[2]
-	// Construct document
-	h := Header{}
-	yaml.Unmarshal([]byte(header), &h)
-	date, err := time.Parse("2006-01-02T15:04:05-07:00", h.Date)
-	if err != nil {
-		return nil, err
-	}
-	d := Document{
-		Path:       filePath[len(rootDirPath):],
-		Text:       body,
-		Title:      h.Title,
-		Date:       date,
-		Categories: h.Categories,
-	}
-	return &d, nil
-}
-
 func getIDX(filePath string) string {
 	return fmt.Sprintf("%x", sha1.Sum([]byte(filePath)))
 }
 
 func (el *Elastic) IndexDoc(filePath, rootDirPath string) error {
 	idx := getIDX(filePath)
-	doc, _ := docFromFile(filePath, rootDirPath)
+	doc, err := document_manager.DocFromFile(filePath, rootDirPath)
+	if err != nil {
+		return err
+	}
 	el.jobs <- &Job{
 		Command:  "index",
 		Document: doc,
@@ -222,7 +181,7 @@ func (el *Elastic) Search(query string, size string, from string) ([]byte, error
 	// parse json to result
 	var result Result
 	json.Unmarshal(bodyBytes, &result)
-	docs := []Document{}
+	docs := []document_manager.Document{}
 	// add docs from result
 	for _, doc := range result.Hits.Hits {
 		docs = append(docs, doc.Source)
