@@ -8,233 +8,167 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/MohammedLatif2/blog-indexer/elastic"
-
 	"github.com/fsnotify/fsnotify"
 	jww "github.com/spf13/jwalterweatherman"
 )
 
-type strList []string
+type CallBack func(fileName string) error
 
-type watcherArgs struct {
-	watcher      *fsnotify.Watcher
-	root         string
-	el           *elastic.Elastic
-	watchList    strList
-	indexedFiles strList
+type FileInfo struct {
+	isDir bool
+	// mTime       time.Time
+	// provisioned bool
 }
 
-func Watcher(root string, el *elastic.Elastic) {
-	tweakLimit()
-	watcherArgs := newWatcherArgs(root, el)
-	dirs, files := getDirsAndFilesFrom(watcherArgs.root)
-	watcherArgs.setWatcher()
-	defer watcherArgs.watcher.Close()
-	watcherArgs.indexFiles(files)
-	watcherArgs.updateWatchList(dirs)
+type Watcher struct {
+	root     string
+	fileMap  map[string]*FileInfo
+	watcher  *fsnotify.Watcher
+	indexCB  CallBack
+	removeCB CallBack
+}
+
+func NewWatcher(root string, indexCB CallBack, removeCB CallBack) *Watcher {
+	w, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
+	watcher := &Watcher{root: root, fileMap: map[string]*FileInfo{}, watcher: w, indexCB: indexCB, removeCB: removeCB}
+	watcher.tweakLimit()
+	watcher.addDir(root)
+	return watcher
+}
+
+func (watcher *Watcher) Start() {
+	defer watcher.watcher.Close()
 	done := make(chan bool)
 	go func() {
 		for {
 			select {
-			case event := <-watcherArgs.watcher.Events:
-				// fmt.Println("event:", event)
-				if watcherArgs.isDir(event.Name) {
-					// if event.Op&fsnotify.Write == fsnotify.Write {
-					// 	Do something?
-					// }
-					if event.Op&fsnotify.Create == fsnotify.Create {
-						watcherArgs.addNewDir(event.Name)
-					}
+			case event := <-watcher.watcher.Events:
+				log.Println("event:", event)
+				if strings.HasPrefix(event.Name, ".") || event.Name == "" || event.Name == " " {
+					continue
+				}
+				if watcher.isDir(event.Name) {
 					if (event.Op&fsnotify.Remove == fsnotify.Remove) ||
 						(event.Op&fsnotify.Rename == fsnotify.Rename) {
-						watcherArgs.removeDir(event.Name)
-					}
-				} else if isMarkdown(event.Name) {
-					if (event.Op&fsnotify.Write == fsnotify.Write) ||
+						watcher.removeDir(event.Name)
+					} else if (event.Op&fsnotify.Write == fsnotify.Write) ||
 						(event.Op&fsnotify.Create == fsnotify.Create) {
-						watcherArgs.writeFile(event.Name)
+						watcher.addDir(event.Name)
 					}
+				} else {
 					if (event.Op&fsnotify.Remove == fsnotify.Remove) ||
 						(event.Op&fsnotify.Rename == fsnotify.Rename) {
-						watcherArgs.removeFile(event.Name)
+						watcher.removeFile(event.Name)
+					} else if (event.Op&fsnotify.Write == fsnotify.Write) ||
+						(event.Op&fsnotify.Create == fsnotify.Create) {
+						watcher.indexFile(event.Name)
 					}
 				}
-			case err := <-watcherArgs.watcher.Errors:
+			case err := <-watcher.watcher.Errors:
 				fmt.Println("error:", err)
 			}
 		}
 	}()
-
 	<-done
 }
 
-func newWatcherArgs(root string, el *elastic.Elastic) *watcherArgs {
-	return &watcherArgs{root: root, el: el}
-}
-
-func (watcherArgs *watcherArgs) setWatcher() {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Fatal(err)
+func (watcher *Watcher) indexFile(fileName string) {
+	fileInfo, ok := watcher.fileMap[fileName]
+	if !ok {
+		fileInfo = &FileInfo{isDir: false}
+		watcher.fileMap[fileName] = fileInfo
 	}
-	watcherArgs.watcher = watcher
+	log.Println("indexFile: Indexing", fileName)
+	// watcher.indexCB(fileName)
 }
 
-func (watcherArgs *watcherArgs) updateWatchList(watchList strList) {
-	for i := 0; i < len(watchList); i++ {
-		// Check for duplicate directories
-		dir := watchList[i]
-		if watcherArgs.watchList.findStr(dir) != -1 {
-			continue
-		}
-		// Add directory to watchlist
-		err := watcherArgs.watcher.Add(dir)
-		if err != nil {
-			log.Fatal(err)
-		}
-		watcherArgs.watchList = append(watcherArgs.watchList, dir)
-		// fmt.Println("ADDED DIR TO WATCHLIST ", dir)
-	}
-}
-
-func (watcherArgs *watcherArgs) indexFiles(files strList) {
-	for _, file := range files {
-		watcherArgs.writeFile(file)
-	}
-}
-
-func (watcherArgs *watcherArgs) writeFile(name string) {
-	err := watcherArgs.el.IndexDoc(name, watcherArgs.root)
-	if err != nil {
-		// fmt.Println("ERROR IDXING DOC ", name)
-		log.Println(err)
+func (watcher *Watcher) removeFile(fileName string) {
+	if _, ok := watcher.fileMap[fileName]; !ok {
+		log.Println("removeFile: file not in map", fileName)
 		return
 	}
-	// fmt.Println("IDX DOC ", name)
-	if i := watcherArgs.indexedFiles.findStr(name); i != -1 {
+	log.Println("removeFile: Removing", fileName)
+	// watcher.removeCB(fileName)
+	delete(watcher.fileMap, fileName)
+}
+
+func (watcher *Watcher) addDir(dirName string) {
+	if fileInfo, ok := watcher.fileMap[dirName]; !ok {
+		fileInfo = &FileInfo{isDir: true}
+		watcher.fileMap[dirName] = fileInfo
+	}
+	watcher.watcher.Add(dirName)
+	// Process all files under dir
+	for fileName, fileInfo := range watcher.dirWalk(dirName) {
+		if fileInfo.isDir {
+			watcher.watcher.Add(fileName)
+			watcher.fileMap[fileName] = fileInfo
+		} else {
+			watcher.indexFile(fileName)
+		}
+	}
+}
+
+func (watcher *Watcher) removeDir(dirName string) {
+	if _, ok := watcher.fileMap[dirName]; !ok {
+		log.Println("removeDir: dir not in map", dirName)
 		return
 	}
-	watcherArgs.indexedFiles = append(watcherArgs.indexedFiles, name)
-}
-
-func (watcherArgs *watcherArgs) removeFile(name string) {
-	i := watcherArgs.indexedFiles.findStr(name)
-	if i == -1 {
-		return
-	}
-	err := watcherArgs.el.DeleteDoc(name)
-	if err != nil {
-		// fmt.Println("ERROR REMOVING DOC ", name)
-		log.Println(err)
-		return
-	}
-	// fmt.Println("REMDOC: ", name)
-	watcherArgs.indexedFiles = removeStrAt(i, watcherArgs.indexedFiles)
-}
-
-func (watcherArgs *watcherArgs) removeDir(name string) {
-	if i := watcherArgs.watchList.findStr(name); i != -1 {
-		watcherArgs.watchList = removeStrAt(i, watcherArgs.watchList)
-		watcherArgs.watcher.Remove(name)
-		// fmt.Println("REMOVED DIR FROM WATCHLIST:", name)
-		watcherArgs.removeDirsWithPrefix(name)
-		watcherArgs.removeFilesWithPrefix(name)
-	}
-}
-
-func (watcherArgs *watcherArgs) removeDirsWithPrefix(prefix string) {
-	removedDirs := 0
-	for i := 0; i < len(watcherArgs.watchList); i++ {
-		idx := i - removedDirs
-		dir := watcherArgs.watchList[idx]
-		if strings.HasPrefix(dir, prefix) == false {
-			continue
-		}
-		// fmt.Println("REMOVED DIR FROM WATCHLIST:", dir)
-		watcherArgs.watchList = removeStrAt(idx, watcherArgs.watchList)
-		watcherArgs.watcher.Remove(dir)
-		removedDirs++
-	}
-}
-
-func (watcherArgs *watcherArgs) removeFilesWithPrefix(prefix string) {
-	removedFiles := 0
-	for i := 0; i < len(watcherArgs.indexedFiles); i++ {
-		idx := i - removedFiles
-		file := watcherArgs.indexedFiles[idx]
-		if strings.HasPrefix(file, prefix) == false {
-			continue
-		}
-		err := watcherArgs.el.DeleteDoc(file)
-		if err != nil {
-			// fmt.Println("ERROR REMOVING DOC ", name)
-			log.Println(err)
-			return
-		}
-		// fmt.Println("REMDOC: ", file)
-		watcherArgs.indexedFiles = removeStrAt(idx, watcherArgs.indexedFiles)
-		removedFiles++
-	}
-}
-
-func (watcherArgs *watcherArgs) addNewDir(name string) {
-	dirs, files := getDirsAndFilesFrom(name)
-	watcherArgs.indexFiles(files)
-	watcherArgs.updateWatchList(dirs)
-}
-
-func (strList strList) findStr(str string) int {
-	for i, val := range strList {
-		if val == str {
-			return i
+	// Process all files under dir
+	for fileName, fileInfo := range watcher.mapWalk(dirName) {
+		if fileInfo.isDir {
+			delete(watcher.fileMap, fileName)
+		} else {
+			watcher.removeFile(fileName)
 		}
 	}
-	return -1
 }
 
-func getDirsAndFilesFrom(root string) (strList, strList) {
-	files := strList{}
-	dirs := strList{}
+func (watcher *Watcher) mapWalk(root string) map[string]*FileInfo {
+	fileMap := map[string]*FileInfo{}
+	for fileName, fileInfo := range watcher.fileMap {
+		if strings.HasPrefix(fileName, root) {
+			fileMap[fileName] = fileInfo
+		}
+	}
+	return fileMap
+}
+
+func (watcher *Watcher) dirWalk(root string) map[string]*FileInfo {
+	l := map[string]*FileInfo{}
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
 			return err
 		}
-		if info.IsDir() {
-			dirs = append(dirs, path)
-			return nil
-		} else if strings.HasSuffix(info.Name(), ".md") {
-			files = append(files, path)
-			return nil
-		}
+		l[path] = &FileInfo{isDir: info.IsDir()}
 		return nil
 	})
 	if err != nil {
-		return nil, nil
+		return nil
 	}
-	return dirs, files
+	return l
 }
 
-func (watcherArgs *watcherArgs) isDir(filename string) bool {
-	if watcherArgs.watchList.findStr(filename) != -1 {
-		return true
+func (watcher *Watcher) isDir(filename string) bool {
+	if f, ok := watcher.fileMap[filename]; ok {
+		return f.isDir
 	}
 	fi, err := os.Stat(filename)
 	if err != nil {
 		if strings.HasSuffix(err.Error(), "no such file or directory") {
 			return false
 		}
-		fmt.Println(err)
+		log.Println(err)
 		return false
 	}
 	return fi.Mode().IsDir()
 }
 
-func isMarkdown(filename string) bool {
-	return filepath.Ext(filename) == ".md"
-}
-
-func tweakLimit() {
+func (watcher *Watcher) tweakLimit() {
 	var rLimit syscall.Rlimit
 	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
 	if err != nil {
@@ -248,8 +182,4 @@ func tweakLimit() {
 			jww.WARN.Println("Unable to increase number of open files limit", err)
 		}
 	}
-}
-
-func removeStrAt(idx int, list strList) strList {
-	return append(list[:idx], list[idx+1:]...)
 }

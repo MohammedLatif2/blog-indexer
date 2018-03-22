@@ -13,7 +13,7 @@ func main() {
 	config, err := config.GetConfig()
 	if err == nil {
 		el := elastic.NewElastic(config.ElRoot)
-		go watcher.Watcher(config.Root, el)
+		go watcher.NewWatcher(config.Root, nil, nil).Start()
 		s := http.NewServer(el)
 		s.Start()
 	}
