@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MohammedLatif2/blog-indexer/document_manager"
+	"github.com/MohammedLatif2/blog-indexer/document"
 )
 
 type Result struct {
@@ -22,7 +22,7 @@ type Hits struct {
 	Hits  []Hits2
 }
 type Hits2 struct {
-	Source document_manager.Document `json:"_source"`
+	Source document.Document `json:"_source"`
 }
 
 type Job struct {
@@ -168,7 +168,7 @@ func (el *Elastic) Search(query string, size string, from string) ([]byte, error
 	// parse json to result
 	var result Result
 	json.Unmarshal(bodyBytes, &result)
-	docs := []document_manager.Document{}
+	docs := []document.Document{}
 	// add docs from result
 	for _, doc := range result.Hits.Hits {
 		docs = append(docs, doc.Source)

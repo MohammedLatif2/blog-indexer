@@ -82,7 +82,7 @@ func (watcher *Watcher) indexFile(fileName string) {
 		watcher.fileMap[fileName] = fileInfo
 	}
 	log.Println("indexFile: Indexing", fileName)
-	// watcher.indexCB(fileName)
+	watcher.indexCB(fileName)
 }
 
 func (watcher *Watcher) removeFile(fileName string) {
@@ -91,7 +91,7 @@ func (watcher *Watcher) removeFile(fileName string) {
 		return
 	}
 	log.Println("removeFile: Removing", fileName)
-	// watcher.removeCB(fileName)
+	watcher.removeCB(fileName)
 	delete(watcher.fileMap, fileName)
 }
 

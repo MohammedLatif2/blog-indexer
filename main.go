@@ -4,7 +4,9 @@ import (
 	"flag"
 
 	"github.com/MohammedLatif2/blog-indexer/elastic"
+	"github.com/MohammedLatif2/blog-indexer/elastic_driver"
 	"github.com/MohammedLatif2/blog-indexer/http"
+	"github.com/MohammedLatif2/blog-indexer/watcher"
 )
 
 func main() {
@@ -13,7 +15,8 @@ func main() {
 	flag.StringVar(&elURL, "postsRoot", "http://localhost:9200/", "elastic host")
 	flag.Parse()
 	el := elastic.NewElastic(elURL)
-	// go watcher.NewWatcher(postsRoot, el.IndexDoc, el.DeleteDoc).Start()
+	elm := elastic_driver.NewElasticDriver(el, postsRoot)
+	go watcher.NewWatcher(postsRoot, elm.IndexDoc, elm.DeleteDoc).Start()
 	s := http.NewServer(el)
 	s.Start()
 }

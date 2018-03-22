@@ -1,4 +1,4 @@
-package document_manager
+package document
 
 import (
 	"fmt"
