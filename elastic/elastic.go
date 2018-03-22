@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MohammedLatif2/blog-indexer/config/document_manager"
+	"github.com/MohammedLatif2/blog-indexer/document_manager"
 )
 
 type Result struct {
