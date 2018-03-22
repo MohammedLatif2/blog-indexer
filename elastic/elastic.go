@@ -110,7 +110,10 @@ func getIDX(filePath string) string {
 
 func (el *Elastic) IndexDoc(filePath, rootDirPath string) error {
 	idx := getIDX(filePath)
-	doc, _ := docFromFile(filePath, rootDirPath)
+	doc, err := docFromFile(filePath, rootDirPath)
+	if err != nil {
+		return err
+	}
 	el.jobs <- &Job{
 		Command:  "index",
 		Document: doc,
