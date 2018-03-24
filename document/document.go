@@ -17,14 +17,14 @@ type Header struct {
 
 type Document struct {
 	_Idx       string
-	Path       string
+	URL        string
 	Text       string
 	Title      string
 	Date       time.Time
 	Categories []string
 }
 
-func DocFromFile(filePath, rootDirPath string) (*Document, error) {
+func DocFromFile(filePath string) (*Document, error) {
 	// Read file
 	dat, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -45,7 +45,6 @@ func DocFromFile(filePath, rootDirPath string) (*Document, error) {
 		return nil, err
 	}
 	d := Document{
-		Path:       strings.TrimSuffix(filePath[len(rootDirPath):], ".md"),
 		Text:       body,
 		Title:      h.Title,
 		Date:       date,

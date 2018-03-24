@@ -3,6 +3,7 @@ package elastic_driver
 import (
 	"crypto/sha1"
 	"fmt"
+	"strings"
 
 	"github.com/MohammedLatif2/blog-indexer/config"
 	"github.com/MohammedLatif2/blog-indexer/document"
@@ -24,7 +25,8 @@ func getIDX(filePath string) string {
 
 func (elm *ElasticDriver) IndexDoc(filePath string) {
 	id := getIDX(filePath)
-	doc, _ := document.DocFromFile(filePath, elm.Config.HugoRoot)
+	doc, _ := document.DocFromFile(filePath)
+	doc.URL = elm.Config.Hugo.BaseURL + strings.TrimSuffix(filePath[len(elm.Config.Hugo.ContentRoot):], ".md") + "/"
 	elm.El.IndexDoc(id, doc)
 }
 

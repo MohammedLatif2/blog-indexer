@@ -39,3 +39,11 @@ Next we need to build the Docker image:
 You can use the project `docker-compose.yml` file to start an instance of Elasticsearch with Kibana useful for testing the app, or even tune it for production use:
 
     docker-compose up 
+
+
+
+## TODO
+
+- Embed templates and static files inside binary
+- Option to skip initial indexing
+- Use environment variable for Dockerimage 

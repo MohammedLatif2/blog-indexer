@@ -7,6 +7,11 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+type Hugo struct {
+	BaseURL     string `yaml:"base-url"`
+	ContentRoot string `yaml:"content-root"`
+}
+
 type Elastic struct {
 	Base  string
 	Index string
@@ -14,8 +19,8 @@ type Elastic struct {
 }
 
 type Config struct {
-	HugoRoot string `yaml:"hugo-root"`
-	Elastic  Elastic
+	Hugo    Hugo
+	Elastic Elastic
 }
 
 func NewConfig(filename string) (*Config, error) {
@@ -30,6 +35,8 @@ func NewConfig(filename string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	config.Hugo.BaseURL = strings.TrimRight(config.Hugo.BaseURL, "/")
+	config.Hugo.ContentRoot = strings.TrimRight(config.Hugo.ContentRoot, "/")
 	config.Elastic.Base = strings.TrimRight(config.Elastic.Base, "/")
 	return config, nil
 }

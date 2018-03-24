@@ -50,7 +50,7 @@ func (server *Server) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	from := r.FormValue("from")
 
 	result, err := server.el.Search(q, size, from)
-	log.Println("Q:", q, "Result:", result)
+	// log.Println("Q:", q, "Result:", result)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal Server Error"))

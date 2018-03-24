@@ -5,6 +5,11 @@
     <input type="submit" value="search">
 </form>
 
+
+<ul>
 {{range .result}}
-<a href="https://rayed.com/posts{{.Path}}"><p>{{.Title}}</p></a>
+<li>
+    <a href="{{.URL}}">{{.Title}}</a>
+</li>
 {{end}}
+</ul>
