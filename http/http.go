@@ -5,8 +5,11 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/MohammedLatif2/blog-indexer/elastic"
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
 )
 
 type Server struct {
@@ -47,6 +50,7 @@ func (server *Server) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	from := r.FormValue("from")
 
 	result, err := server.el.Search(q, size, from)
+	log.Println("Q:", q, "Result:", result)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal Server Error"))
@@ -60,14 +64,23 @@ func (server *Server) IndexHandler(w http.ResponseWriter, r *http.Request) {
 func (server *Server) JsHandler(w http.ResponseWriter, r *http.Request) {
 	t, _ := template.ParseFiles("templates/js.html")
 	t.Execute(w, nil)
+}
 
+func (server *Server) Panic(w http.ResponseWriter, r *http.Request) {
+	t, _ := template.ParseFiles("just_panic")
+	t.Execute(w, nil)
 }
 
 func (server *Server) Start() {
 	log.Println("Starting Web Server")
-	http.HandleFunc("/search", server.SearchHandler)
-	http.HandleFunc("/stats", server.StatsHandler)
-	http.HandleFunc("/", server.IndexHandler)
-	http.HandleFunc("/js", server.JsHandler)
+
+	r := mux.NewRouter()
+	r.HandleFunc("/", server.IndexHandler)
+	r.HandleFunc("/js", server.JsHandler)
+	r.HandleFunc("/search", server.SearchHandler)
+	r.HandleFunc("/stats", server.StatsHandler)
+	r.HandleFunc("/panic", server.Panic)
+
+	http.Handle("/", handlers.RecoveryHandler()(handlers.LoggingHandler(os.Stdout, r)))
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
