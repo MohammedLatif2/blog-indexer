@@ -1,23 +1,27 @@
 package config
 
 import (
-	"encoding/json"
-	"os"
+	"io/ioutil"
+
+	yaml "gopkg.in/yaml.v2"
 )
 
-type Configuration struct {
-	Root   string
-	ElRoot string
+type Config struct {
+	HugoRoot    string `yaml:"hugo-root"`
+	ElasticBase string `yaml:"elastic-base"`
 }
 
-func GetConfig() (*Configuration, error) {
-	file, _ := os.Open("config/config.json")
-	defer file.Close()
-	decoder := json.NewDecoder(file)
-	configuration := Configuration{}
-	err := decoder.Decode(&configuration)
+func NewConfig(filename string) (*Config, error) {
+	// Read file
+	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
-	return &configuration, nil
+	// Parse Yaml
+	config := &Config{}
+	err = yaml.Unmarshal(data, &config)
+	if err != nil {
+		return nil, err
+	}
+	return config, nil
 }

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/MohammedLatif2/blog-indexer/config"
 	"github.com/MohammedLatif2/blog-indexer/document"
 )
 
@@ -39,17 +40,14 @@ type Index1 struct {
 }
 
 type Elastic struct {
-	BaseUrl string
-	jobs    chan *Job
-	done    chan struct{}
+	Config *config.Config
+	jobs   chan *Job
+	done   chan struct{}
 }
 
-func NewElastic(baseUrl string) *Elastic {
-	if !isEndedBySlash(baseUrl) {
-		baseUrl = baseUrl + "/"
-	}
+func NewElastic(config *config.Config) *Elastic {
 	el := &Elastic{}
-	el.BaseUrl = baseUrl
+	el.Config = config
 	el.jobs = make(chan *Job, 1)
 	el.done = make(chan struct{}, 1)
 
@@ -96,7 +94,7 @@ func (el *Elastic) Close() {
 }
 
 func (el *Elastic) bulkJob(jobs []*Job) {
-	url := el.BaseUrl + "_bulk"
+	url := el.Config.ElasticBase + "_bulk"
 
 	lines := []string{}
 	for _, job := range jobs {
@@ -148,7 +146,7 @@ func (el *Elastic) Search(query string, size string, from string) ([]document.Do
 	if len(query) == 0 {
 		return nil, nil
 	}
-	reqURL := el.BaseUrl + "_search?q=" + query
+	reqURL := el.Config.ElasticBase + "_search?q=" + query
 	if len(size) != 0 {
 		reqURL = reqURL + "&size=" + size
 	}
@@ -176,12 +174,4 @@ func (el *Elastic) Search(query string, size string, from string) ([]document.Do
 	// parse docs to json
 
 	// return docsJson, nil
-}
-
-func isEndedBySlash(url string) bool {
-	index := strings.LastIndexAny(url, "/")
-	if index+1 == len(url) {
-		return true
-	}
-	return false
 }

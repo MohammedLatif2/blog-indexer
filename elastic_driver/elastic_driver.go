@@ -4,17 +4,18 @@ import (
 	"crypto/sha1"
 	"fmt"
 
+	"github.com/MohammedLatif2/blog-indexer/config"
 	"github.com/MohammedLatif2/blog-indexer/document"
 	"github.com/MohammedLatif2/blog-indexer/elastic"
 )
 
 type ElasticDriver struct {
-	El          *elastic.Elastic
-	RootDirPath string
+	El     *elastic.Elastic
+	Config *config.Config
 }
 
-func NewElasticDriver(el *elastic.Elastic, rootDirPath string) *ElasticDriver {
-	return &ElasticDriver{El: el, RootDirPath: rootDirPath}
+func NewElasticDriver(el *elastic.Elastic, config *config.Config) *ElasticDriver {
+	return &ElasticDriver{El: el, Config: config}
 }
 
 func getIDX(filePath string) string {
@@ -23,7 +24,7 @@ func getIDX(filePath string) string {
 
 func (elm *ElasticDriver) IndexDoc(filePath string) {
 	id := getIDX(filePath)
-	doc, _ := document.DocFromFile(filePath, elm.RootDirPath)
+	doc, _ := document.DocFromFile(filePath, elm.Config.HugoRoot)
 	elm.El.IndexDoc(id, doc)
 }
 

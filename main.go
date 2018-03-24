@@ -2,7 +2,9 @@ package main
 
 import (
 	"flag"
+	"log"
 
+	"github.com/MohammedLatif2/blog-indexer/config"
 	"github.com/MohammedLatif2/blog-indexer/elastic"
 	"github.com/MohammedLatif2/blog-indexer/elastic_driver"
 	"github.com/MohammedLatif2/blog-indexer/http"
@@ -10,15 +12,21 @@ import (
 )
 
 func main() {
-	var elURL, postsRoot string
-	flag.StringVar(&postsRoot, "postsRoot", "/Users/malsayed/workspace/rayed.com/content/posts", "post directory")
-	flag.StringVar(&elURL, "elURL", "http://localhost:9200/", "elastic host")
+	configFile := ""
+	flag.StringVar(&configFile, "config", "config.yml", "Configuration file")
 	flag.Parse()
 
-	el := elastic.NewElastic(elURL)
-	elm := elastic_driver.NewElasticDriver(el, postsRoot)
+	// Read configuration
+	config, err := config.NewConfig(configFile)
+	if err != nil {
+		log.Fatal("Couldn't open config file")
+	}
+	log.Println(config)
 
-	go watcher.NewWatcher(postsRoot, elm.IndexDoc, elm.DeleteDoc).Start()
+	el := elastic.NewElastic(config)
+	elm := elastic_driver.NewElasticDriver(el, config)
+
+	go watcher.NewWatcher(config.HugoRoot, elm.IndexDoc, elm.DeleteDoc).Start()
 
 	s := http.NewServer(el)
 	s.Start()
