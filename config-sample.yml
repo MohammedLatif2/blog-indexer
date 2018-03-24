@@ -1,3 +1,6 @@
 ---
-hugo-root: /Users/rayed/git/rayed.com/content/posts/
-elastic-base: http://localhost:9200/rayed/posts/
+hugo-root: /Users/rayed/rayed.com/content/posts/
+elastic:
+  base: http://localhost:9200/
+  index: rayed
+  type: posts

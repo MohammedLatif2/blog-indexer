@@ -3,6 +3,7 @@ package elastic
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -94,14 +95,14 @@ func (el *Elastic) Close() {
 }
 
 func (el *Elastic) bulkJob(jobs []*Job) {
-	url := el.Config.ElasticBase + "_bulk"
+	url := fmt.Sprintf("%s/_bulk", el.Config.Elastic.Base)
 
 	lines := []string{}
 	for _, job := range jobs {
 		command := map[string]interface{}{
 			job.Command: map[string]string{
-				"_index": "rayed",
-				"_type":  "post",
+				"_index": el.Config.Elastic.Index,
+				"_type":  el.Config.Elastic.Type,
 				"_id":    job.Id,
 			},
 		}
@@ -121,6 +122,7 @@ func (el *Elastic) bulkJob(jobs []*Job) {
 	}
 
 	request := strings.Join(lines, "\n") + "\n"
+
 	req, _ := http.NewRequest("POST", url, bytes.NewBuffer([]byte(request)))
 	req.Header.Set("Content-Type", "application/x-ndjson")
 	client := &http.Client{}
@@ -146,13 +148,14 @@ func (el *Elastic) Search(query string, size string, from string) ([]document.Do
 	if len(query) == 0 {
 		return nil, nil
 	}
-	reqURL := el.Config.ElasticBase + "_search?q=" + query
+	reqURL := fmt.Sprintf("%s/%s/%s/_search?q=%s", el.Config.Elastic.Base, el.Config.Elastic.Index, el.Config.Elastic.Type, query)
 	if len(size) != 0 {
 		reqURL = reqURL + "&size=" + size
 	}
 	if len(from) != 0 {
 		reqURL = reqURL + "&from=" + from
 	}
+	log.Println(reqURL)
 	resp, err := http.Get(reqURL)
 	if err != nil {
 		return nil, err

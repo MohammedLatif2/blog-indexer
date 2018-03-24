@@ -2,13 +2,20 @@ package config
 
 import (
 	"io/ioutil"
+	"strings"
 
 	yaml "gopkg.in/yaml.v2"
 )
 
+type Elastic struct {
+	Base  string
+	Index string
+	Type  string
+}
+
 type Config struct {
-	HugoRoot    string `yaml:"hugo-root"`
-	ElasticBase string `yaml:"elastic-base"`
+	HugoRoot string `yaml:"hugo-root"`
+	Elastic  Elastic
 }
 
 func NewConfig(filename string) (*Config, error) {
@@ -23,5 +30,6 @@ func NewConfig(filename string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	config.Elastic.Base = strings.TrimRight(config.Elastic.Base, "/")
 	return config, nil
 }
