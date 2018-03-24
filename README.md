@@ -29,6 +29,15 @@ Next we need to build the Docker image:
 
     docker build -t hugosearch .
 
+To run it:
+
+    docker  run --rm \
+        -e HS_BASEURL=https://rayed.com/posts/ \
+        -e HS_ELASTIC_BASE=http://10.10.10.121:9200/ \
+        -v ~/git/rayed.com/content/posts/:/data \
+        -p 8080:8080 \
+        hugosearch
+
 
 ## Run Elastic Only in Docker
 
@@ -46,4 +55,5 @@ You can use the project `docker-compose.yml` file to start an instance of Elasti
 
 - Embed templates and static files inside binary
 - Option to skip initial indexing
-- Use environment variable for Dockerimage 
+- Use environment variable for Dockerimage
+- Use login library with multiple levels

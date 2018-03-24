@@ -1,5 +1,6 @@
 FROM alpine
-COPY blog-indexer-linux /app/blog-indexer
+COPY blog-indexer-linux run-hugosearch.sh /app/
+COPY templates /app/templates
 WORKDIR /app
 EXPOSE 8080
-CMD ["./blog-indexer", "-postsRoot=/data", "-elURL=http://elasticsearch:9200"] 
+CMD ["./run-hugosearch.sh"]

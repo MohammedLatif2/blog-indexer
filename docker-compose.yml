@@ -25,7 +25,9 @@ services:
         depends_on:
             - elasticsearch
         volumes:
-            - /Users/mabdullatif/Desktop/projects/rayed.com/content/posts:/data
+            - /Users/rayed/git/rayed.com/content/posts/:/data
+        environment:
+            HS_BASEURL: https://rayed.com/posts/
         ports:
             - 8080:8080
         networks:

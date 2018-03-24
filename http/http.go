@@ -45,19 +45,29 @@ func (server *Server) StatsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *Server) IndexHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("index 1")
 	q := r.FormValue("q")
 	size := r.FormValue("size")
 	from := r.FormValue("from")
+	log.Println("index 2")
 
 	result, err := server.el.Search(q, size, from)
+	log.Println("index 3")
 	// log.Println("Q:", q, "Result:", result)
 	if err != nil {
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal Server Error"))
 		return
 	}
-
-	t, _ := template.ParseFiles("templates/index.html")
+	log.Println("index 4")
+	t, err := template.ParseFiles("templates/index.html")
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Internal Server Error"))
+		return
+	}
 	t.Execute(w, map[string]interface{}{"q": q, "result": result})
 }
 
