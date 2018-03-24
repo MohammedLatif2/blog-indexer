@@ -129,6 +129,7 @@ func (el *Elastic) bulkJob(jobs []*Job) {
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
+		return
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= 300 {
@@ -177,4 +178,26 @@ func (el *Elastic) Search(query string, size string, from string) ([]document.Do
 	// parse docs to json
 
 	// return docsJson, nil
+}
+
+func (el *Elastic) Ready() error {
+	reqURL := fmt.Sprintf("%s/_cluster/health", el.Config.Elastic.Base)
+	resp, err := http.Get(reqURL)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	// parse json to result
+	var result struct {
+		Status string
+	}
+	json.Unmarshal(data, &result)
+	if result.Status == "red" {
+		return fmt.Errorf("Elastic status: %s", result.Status)
+	}
+	return nil
 }
