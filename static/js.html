@@ -13,7 +13,7 @@
 
 <ul>
     <li v-for="item in items">
-      <a href="{{ item.URL }}">{{item.Title}}</a>
+      <a :href="item.URL">{{item.Title}}</a>
     </li>
 </ul>
 
