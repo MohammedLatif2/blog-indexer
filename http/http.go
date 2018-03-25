@@ -71,11 +71,6 @@ func (server *Server) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, map[string]interface{}{"q": q, "result": result})
 }
 
-func (server *Server) JsHandler(w http.ResponseWriter, r *http.Request) {
-	t, _ := template.ParseFiles("templates/js.html")
-	t.Execute(w, nil)
-}
-
 func (server *Server) Panic(w http.ResponseWriter, r *http.Request) {
 	t, _ := template.ParseFiles("just_panic")
 	t.Execute(w, nil)
@@ -86,10 +81,12 @@ func (server *Server) Start() {
 
 	r := mux.NewRouter()
 	r.HandleFunc("/", server.IndexHandler)
-	r.HandleFunc("/js", server.JsHandler)
 	r.HandleFunc("/search", server.SearchHandler)
 	r.HandleFunc("/stats", server.StatsHandler)
 	r.HandleFunc("/panic", server.Panic)
+
+	fs := http.FileServer(http.Dir("static"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	http.Handle("/", handlers.RecoveryHandler()(handlers.LoggingHandler(os.Stdout, r)))
 	log.Fatal(http.ListenAndServe(":8080", nil))

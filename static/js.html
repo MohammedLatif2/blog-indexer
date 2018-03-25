@@ -1,0 +1,71 @@
+<body>
+<div id="app">
+
+
+<h1>Search</h1>
+
+<form id="form1" @submit.prevent="search">
+    query: 
+    <input type="text" name="q" v-model="query" id="query"> 
+    <input type="submit" value="search">
+</form>
+
+
+<ul>
+    <li v-for="item in items">
+      <a href="{{ item.URL }}">{{item.Title}}</a>
+    </li>
+</ul>
+
+
+</div><!-- app -->
+
+
+
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue"></script>
+<script>
+
+function getParameterByName(name, url) {
+    if (!url) url = window.location.href;
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+}
+
+var app = new Vue({
+    el: '#app',
+    data: {
+        query: '',
+        message: 'Hello Vue!',
+        items: []
+    },
+    methods: {
+        search: function() {
+            console.log(this.query)
+            axios.get('/search', {
+                params: { q: this.query }
+            })
+            .then(function (response) {
+                Vue.set(app, 'items', response.data)
+            })
+            .catch(function (error) {
+                console.log(error)
+            });
+        } // search
+    }, // methods
+    mounted: function() {
+        console.log("Mounted!")
+        this.query = getParameterByName("q", window.location)
+        this.search()
+    } // mounted
+})
+
+</script>
+
+
+
+</body>
