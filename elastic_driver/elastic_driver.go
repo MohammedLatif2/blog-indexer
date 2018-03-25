@@ -8,6 +8,7 @@ import (
 	"github.com/MohammedLatif2/blog-indexer/config"
 	"github.com/MohammedLatif2/blog-indexer/document"
 	"github.com/MohammedLatif2/blog-indexer/elastic"
+	log "github.com/Sirupsen/logrus"
 )
 
 type ElasticDriver struct {
@@ -25,7 +26,11 @@ func getIDX(filePath string) string {
 
 func (elm *ElasticDriver) IndexDoc(filePath string) {
 	id := getIDX(filePath)
-	doc, _ := document.DocFromFile(filePath)
+	doc, err := document.DocFromFile(filePath)
+	if err != nil {
+		log.Warnln("IndexDoc: Could not index doc ", filePath)
+		return
+	}
 	doc.URL = elm.Config.Hugo.BaseURL + strings.TrimSuffix(filePath[len(elm.Config.Hugo.ContentRoot):], ".md") + "/"
 	elm.El.IndexDoc(id, doc)
 }
