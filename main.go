@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"log"
 	"time"
 
 	"github.com/MohammedLatif2/blog-indexer/config"
@@ -10,9 +9,11 @@ import (
 	"github.com/MohammedLatif2/blog-indexer/elastic_driver"
 	"github.com/MohammedLatif2/blog-indexer/http"
 	"github.com/MohammedLatif2/blog-indexer/watcher"
+	log "github.com/Sirupsen/logrus"
 )
 
 func main() {
+	log.SetLevel(log.DebugLevel)
 	configFile := ""
 	flag.StringVar(&configFile, "config", "config.yml", "Configuration file")
 	flag.Parse()
@@ -22,13 +23,13 @@ func main() {
 	if err != nil {
 		log.Fatal("Couldn't open config file")
 	}
-	log.Println(config)
+	log.Debugln(config)
 
 	// Wait for Elastic to be ready!
 	el := elastic.NewElastic(config)
 	for {
 		if err := el.Ready(); err != nil {
-			log.Println("Elastic not ready:", err)
+			log.Debugln("Elastic not ready:", err)
 			time.Sleep(time.Second)
 			continue
 		} else {

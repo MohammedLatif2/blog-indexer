@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/MohammedLatif2/blog-indexer/config"
 	"github.com/MohammedLatif2/blog-indexer/document"
+	log "github.com/Sirupsen/logrus"
 )
 
 type Result struct {
@@ -108,14 +108,14 @@ func (el *Elastic) bulkJob(jobs []*Job) {
 		}
 		commandJSON, err := json.Marshal(command)
 		if err != nil {
-			log.Println(err.Error())
+			log.Warnln("bulkJob: ", err.Error())
 		}
 		lines = append(lines, string(commandJSON))
 
 		if job.Document != nil {
 			docJSON, err := json.Marshal(job.Document)
 			if err != nil {
-				log.Println(err.Error())
+				log.Warnln("bulkJob: ", err.Error())
 			}
 			lines = append(lines, string(docJSON))
 		}
@@ -128,12 +128,12 @@ func (el *Elastic) bulkJob(jobs []*Job) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println(err)
+		log.Warnln("bulkJob: ", err.Error())
 		return
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= 300 {
-		log.Println("document not indexed")
+		log.Warnln("bulkJob: Document not indexed")
 	}
 }
 
@@ -156,7 +156,7 @@ func (el *Elastic) Search(query string, size string, from string) ([]document.Do
 	if len(from) != 0 {
 		reqURL = reqURL + "&from=" + from
 	}
-	log.Println(reqURL)
+	log.Debugln(reqURL)
 	resp, err := http.Get(reqURL)
 	if err != nil {
 		return nil, err

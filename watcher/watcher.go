@@ -2,14 +2,13 @@ package watcher
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/fsnotify/fsnotify"
-	jww "github.com/spf13/jwalterweatherman"
 )
 
 type CallBack func(fileName string)
@@ -46,7 +45,7 @@ func (watcher *Watcher) Start() {
 		for {
 			select {
 			case event := <-watcher.watcher.Events:
-				log.Println("event:", event)
+				log.Infoln("event:", event)
 				if strings.HasPrefix(event.Name, ".") || event.Name == "" || event.Name == " " {
 					continue
 				}
@@ -81,16 +80,16 @@ func (watcher *Watcher) indexFile(fileName string) {
 		fileInfo = &FileInfo{isDir: false}
 		watcher.fileMap[fileName] = fileInfo
 	}
-	log.Println("indexFile: Indexing", fileName)
+	log.Debugln("indexFile: Indexing", fileName)
 	watcher.indexCB(fileName)
 }
 
 func (watcher *Watcher) removeFile(fileName string) {
 	if _, ok := watcher.fileMap[fileName]; !ok {
-		log.Println("removeFile: file not in map", fileName)
+		log.Warnln("removeFile: file not in map", fileName)
 		return
 	}
-	log.Println("removeFile: Removing", fileName)
+	log.Debugln("removeFile: Removing", fileName)
 	watcher.removeCB(fileName)
 	delete(watcher.fileMap, fileName)
 }
@@ -114,7 +113,7 @@ func (watcher *Watcher) addDir(dirName string) {
 
 func (watcher *Watcher) removeDir(dirName string) {
 	if _, ok := watcher.fileMap[dirName]; !ok {
-		log.Println("removeDir: dir not in map", dirName)
+		log.Warnln("removeDir: dir not in map", dirName)
 		return
 	}
 	// Process all files under dir
@@ -141,7 +140,7 @@ func (watcher *Watcher) dirWalk(root string) map[string]*FileInfo {
 	l := map[string]*FileInfo{}
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
+			log.Warnf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
 			return err
 		}
 		l[path] = &FileInfo{isDir: info.IsDir()}
@@ -162,7 +161,7 @@ func (watcher *Watcher) isDir(filename string) bool {
 		if strings.HasSuffix(err.Error(), "no such file or directory") {
 			return false
 		}
-		log.Println(err)
+		log.Warnln("isDir: os.Stat error: ", err)
 		return false
 	}
 	return fi.Mode().IsDir()
@@ -172,14 +171,14 @@ func (watcher *Watcher) tweakLimit() {
 	var rLimit syscall.Rlimit
 	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
 	if err != nil {
-		jww.ERROR.Println("Unable to obtain rLimit", err)
+		log.Errorln("Unable to obtain rLimit", err)
 	}
 	if rLimit.Cur < rLimit.Max {
 		rLimit.Max = 64000
 		rLimit.Cur = 64000
 		err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit)
 		if err != nil {
-			jww.WARN.Println("Unable to increase number of open files limit", err)
+			log.Warnln("Unable to increase number of open files limit", err)
 		}
 	}
 }

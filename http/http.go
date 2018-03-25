@@ -3,11 +3,11 @@ package http
 import (
 	"encoding/json"
 	"html/template"
-	"log"
 	"net/http"
 	"os"
 
 	"github.com/MohammedLatif2/blog-indexer/elastic"
+	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
@@ -45,25 +45,25 @@ func (server *Server) StatsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *Server) IndexHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("index 1")
+	log.Infoln("index 1")
 	q := r.FormValue("q")
 	size := r.FormValue("size")
 	from := r.FormValue("from")
-	log.Println("index 2")
+	log.Infoln("index 2")
 
 	result, err := server.el.Search(q, size, from)
-	log.Println("index 3")
+	log.Infoln("index 3")
 	// log.Println("Q:", q, "Result:", result)
 	if err != nil {
-		log.Println(err)
+		log.Warnln("IndexHandler: ", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal Server Error"))
 		return
 	}
-	log.Println("index 4")
+	log.Infoln("index 4")
 	t, err := template.ParseFiles("templates/index.html")
 	if err != nil {
-		log.Println(err)
+		log.Warnln("IndexHandler: ", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal Server Error"))
 		return
@@ -77,7 +77,7 @@ func (server *Server) Panic(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *Server) Start() {
-	log.Println("Starting Web Server")
+	log.Infoln("Starting Web Server")
 
 	r := mux.NewRouter()
 	r.HandleFunc("/", server.IndexHandler)
