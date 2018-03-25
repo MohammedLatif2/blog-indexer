@@ -11,6 +11,16 @@
 
 <script>
 
+function getParameterByName(name, url) {
+    if (!url) url = window.location.href;
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+}
+
 function load(q){
     // Using the core $.ajax() method
     $.ajax({
@@ -23,7 +33,7 @@ function load(q){
         console.log( json )
         s = ""
         for(i = 0; i < json.length ; i++){
-            s += json[i].Path + "<br>"
+            s += json[i].URL + "<br>"
         }
         $( "#result" ).html(s)
     })
@@ -40,7 +50,11 @@ function load(q){
 
 // Shorthand for $( document ).ready()
 $(function() {
-    console.log( "ready!" );
+    console.log( "ready!" )
+    var q = getParameterByName("q", window.location)
+    if (q!="") {
+        load(q);
+    }
     $("#form1").submit(function(){
         q = $("#query").val()
         console.log("SUBMIT" + q)

@@ -55,5 +55,4 @@ You can use the project `docker-compose.yml` file to start an instance of Elasti
 
 - Embed templates and static files inside binary
 - Option to skip initial indexing
-- Use environment variable for Dockerimage
-- Use login library with multiple levels
+- Use loggin library with multiple levels

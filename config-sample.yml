@@ -1,8 +1,8 @@
 ---
 hugo:
-  base-url: https://rayed.com/posts/
-  content-root: /Users/rayed/git/rayed.com/content/posts/
+    base-url: https://rayed.com/
+    content-root: /Users/rayed/git/rayed.com/content/
 elastic:
-  base: http://localhost:9200/
-  index: rayed
-  type: posts
+    base: http://localhost:9200/
+    index: rayed
+    type: posts
