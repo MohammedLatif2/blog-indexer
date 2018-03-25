@@ -38,7 +38,7 @@ func main() {
 	}
 
 	elm := elastic_driver.NewElasticDriver(el, config)
-	go watcher.NewWatcher(config.Hugo.ContentRoot, elm.IndexDoc, elm.DeleteDoc).Start()
+	go watcher.NewWatcher(config.Hugo.ContentRoot, elm.IndexDoc, elm.DeleteDoc, config.Elastic.SkipIndexing).Start()
 
 	s := http.NewServer(el)
 	s.Start()

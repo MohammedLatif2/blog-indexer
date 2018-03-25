@@ -27,14 +27,16 @@ type Watcher struct {
 	removeCB CallBack
 }
 
-func NewWatcher(root string, indexCB CallBack, removeCB CallBack) *Watcher {
+func NewWatcher(root string, indexCB CallBack, removeCB CallBack, skipIndexing bool) *Watcher {
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatal(err)
 	}
 	watcher := &Watcher{root: root, fileMap: map[string]*FileInfo{}, watcher: w, indexCB: indexCB, removeCB: removeCB}
 	watcher.tweakLimit()
-	watcher.addDir(root)
+	if skipIndexing == false {
+		watcher.addDir(root)
+	}
 	return watcher
 }
 

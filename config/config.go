@@ -13,9 +13,10 @@ type Hugo struct {
 }
 
 type Elastic struct {
-	Base  string
-	Index string
-	Type  string
+	Base         string
+	Index        string
+	Type         string
+	SkipIndexing bool `yaml:"skip-indexing"`
 }
 
 type Config struct {
