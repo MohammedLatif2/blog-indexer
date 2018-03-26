@@ -6,7 +6,7 @@ hugosearch is an application that is designed to index and search [hugo](https:/
 
 ## Building
 
-    dep ensure
+
     go build    # to build blog-indexer binary
 
 ## Running
@@ -20,6 +20,9 @@ hugosearch is an application that is designed to index and search [hugo](https:/
 ## Docker 
 
 ### Building 
+
+Check Dependencies
+    dep ensure
 
 First we need to build the application with Linux as the target:
 

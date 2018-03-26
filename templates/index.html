@@ -1,18 +1,51 @@
-<h1>Search</h1>
-<form>
-    query: 
-    <input type="text" name="q" value="{{.q}}" autofocus>
-    <input type="submit" value="search">
-</form>
+<html>
+
+<head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+<!-- Optional theme -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+<!-- Latest compiled and minified JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+</head>
+
+<div id="app" class="container">
+        <div class="row justify-content-md-center">
+            <div class="col col-lg-10">
+                <div class="col"> 
+                        <h1 class="form-signin-heading">Search</h1>
+                </div>
+                <form id="form1" @submit.prevent="search" class="form-signin">
+                    <label for="query" class="sr-only">Query</label>
+                    <input type="text" name="q" v-model="query" id="query" class="form-control" placeholder="Query"> 
+                    <br/>
+                    <div class="col col-md-5 col-md-offset-4"> 
+                        <input type="submit" value="search" class="btn btn-lg btn-block btn-primary">
+                    </div>
+                    
+                </form>
+            </div>
+        </div>
+        <br/>
+<div class="row">
+    <div class="col col-lg-10">
+            <div class="list-group">
+            {{range .result}}
+            
+              <a href="{{.URL}}" class="list-group-item list-group-item-action">
+                    {{.Title}}
+              </a>
+              {{end}}
+            </div>
+    </div>
+</div>
+<div class="row">
+    Also Try: <a href="/static/js.html">JS Version</a>
+</div>
+    </div>
 
 
-<ul>
-{{range .result}}
-<li>
-    <a href="{{.URL}}">{{.Title}}</a>
-</li>
-{{end}}
-</ul>
-
-
-Also Try: <a href="/static/js.html">JS Version</a>
+</html>
