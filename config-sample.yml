@@ -6,3 +6,4 @@ elastic:
     base: http://localhost:9200/
     index: rayed
     type: posts
+    skip-indexing: false
